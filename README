@@ -1,1 +1,8 @@
 SparkFun FreeDay 2012 request proxy
+
+complile:
+  gcc -lpthread meltdown.c -o meltdown
+
+how it works:
+  if yay bit is 1, you get the cash.
+  if yay bit is 0, you get angry.
