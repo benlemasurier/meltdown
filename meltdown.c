@@ -95,69 +95,19 @@ create_and_bind(char *port)
   return sfd;
 }
 
-void *
-ticket_listener()
-{
-  int server_socket, client_socket;
-  struct sockaddr_in server, client;
-
-  if((server_socket = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-    perror("socket");
-    abort();
-  }
-
-  memset(&server, 0, sizeof(server));
-  server.sin_family = AF_INET;
-  server.sin_addr.s_addr = htonl(INADDR_ANY);
-  server.sin_port = htons(meltdown.ticket_port);
-
-  if(bind(server_socket, (struct sockaddr *) &server, sizeof(server)) == -1) {
-    perror("bind");
-    abort();
-  }
-
-  if(listen(server_socket, SOMAXCONN) < 0) {
-    perror("listen");
-    abort();
-  }
-
-  while(1) {
-    /* wait for tickets */
-    size_t client_len = sizeof(client);
-    if((client_socket = accept(server_socket, (struct sockaddr *) &client, (socklen_t *) &client_len)) < 0)
-      perror("accept");
-
-    meltdown.yay_bit = 1;
-
-    close(client_socket);
-  }
-}
-
-int
-main(int argc, char *argv[])
+void
+get_ticket_listener(char *port)
 {
   int sfd, s;
   int efd;
   struct epoll_event event;
   struct epoll_event *events;
-  pthread_t ticket_thread;
-
   char *win_yes = "1";
   char *win_no  = "0";
   size_t yes_len = strlen(win_yes);
   size_t no_len  = strlen(win_no);
 
-  meltdown.yay_bit = 0;
-
-  if(argc != 3) {
-    fprintf(stderr, "Usage: %s [ticket port] [client port]\n", argv[0]);
-    exit(EXIT_FAILURE);
-  }
-
-  meltdown.ticket_port = atoi(argv[1]);
-  pthread_create(&ticket_thread, NULL, ticket_listener, NULL);
-
-  if((sfd = create_and_bind(argv[2])) == -1)
+  if((sfd = create_and_bind(port)) == -1)
     abort();
 
   if((s = make_socket_non_blocking(sfd)) == -1)
@@ -252,6 +202,62 @@ main(int argc, char *argv[])
 
   free(events);
   close(sfd);
+}
+
+void *
+set_ticket_listener()
+{
+  int server_socket, client_socket;
+  struct sockaddr_in server, client;
+
+  if((server_socket = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+    perror("socket");
+    abort();
+  }
+
+  memset(&server, 0, sizeof(server));
+  server.sin_family = AF_INET;
+  server.sin_addr.s_addr = htonl(INADDR_ANY);
+  server.sin_port = htons(meltdown.ticket_port);
+
+  if(bind(server_socket, (struct sockaddr *) &server, sizeof(server)) == -1) {
+    perror("bind");
+    abort();
+  }
+
+  if(listen(server_socket, SOMAXCONN) < 0) {
+    perror("listen");
+    abort();
+  }
+
+  while(1) {
+    /* wait for tickets */
+    size_t client_len = sizeof(client);
+    if((client_socket = accept(server_socket, (struct sockaddr *) &client, (socklen_t *) &client_len)) < 0)
+      perror("accept");
+
+    meltdown.yay_bit = 1;
+
+    close(client_socket);
+  }
+}
+
+int
+main(int argc, char *argv[])
+{
+  pthread_t ticket_thread;
+  meltdown.yay_bit = 0;
+
+  if(argc != 3) {
+    fprintf(stderr, "Usage: %s [set ticket port] [get ticket port]\n", argv[0]);
+    exit(EXIT_FAILURE);
+  }
+
+  meltdown.ticket_port = atoi(argv[1]);
+
+  pthread_create(&ticket_thread, NULL, set_ticket_listener, NULL);
+  get_ticket_listener(argv[2]);
+
   pthread_exit(NULL);
 
   return EXIT_SUCCESS;
