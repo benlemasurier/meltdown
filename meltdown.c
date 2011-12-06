@@ -17,6 +17,7 @@
 #include <sys/epoll.h>
 #include <errno.h>
 #include <time.h>
+#include <syslog.h>
 #include <pthread.h>
 
 #define MAXEVENTS 64
@@ -172,9 +173,6 @@ get_ticket_listener(char *port)
               sbuf, sizeof sbuf,
               NI_NUMERICHOST | NI_NUMERICSERV);
 
-          if(s == 0)
-            printf("Accepted connection on descriptor %d "
-                "(host=%s, port=%s)\n", infd, hbuf, sbuf);
 
           if((s = make_socket_non_blocking(infd)) == -1)
             abort();
@@ -188,10 +186,13 @@ get_ticket_listener(char *port)
           }
 
           /* inform client of success/failure */
-          if(win())
+          if(win()) {
+            syslog(LOG_INFO,"ZOMGBBQ winning ticket: host %s\n", hbuf);
             send(infd, win_yes, yes_len, MSG_DONTWAIT);
-          else
+          } else {
+            syslog(LOG_INFO,"losing ticket: host %s\n", hbuf);
             send(infd, win_no, no_len, MSG_DONTWAIT);
+          }
 
           close(infd);
         }
@@ -237,6 +238,7 @@ set_ticket_listener()
       perror("accept");
 
     meltdown.yay_bit = 1;
+    syslog(LOG_INFO,"new ticket available");
 
     close(client_socket);
   }
