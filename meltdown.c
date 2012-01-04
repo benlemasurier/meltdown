@@ -240,6 +240,7 @@ set_ticket_listener()
     char buf[BUFSIZ];
     n_bytes = recv(client_socket, buf, BUFSIZ, 0);
     while(n_bytes > 0) {
+      n_bytes = 0;
       meltdown.yay_bit = 1;
       syslog(LOG_INFO,"new ticket available");
       n_bytes = recv(client_socket, buf, BUFSIZ, 0);
