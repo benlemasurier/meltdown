@@ -173,7 +173,6 @@ get_ticket_listener(char *port)
               sbuf, sizeof sbuf,
               NI_NUMERICHOST | NI_NUMERICSERV);
 
-
           if((s = make_socket_non_blocking(infd)) == -1)
             abort();
 
@@ -237,8 +236,14 @@ set_ticket_listener()
     if((client_socket = accept(server_socket, (struct sockaddr *) &client, (socklen_t *) &client_len)) < 0)
       perror("accept");
 
-    meltdown.yay_bit = 1;
-    syslog(LOG_INFO,"new ticket available");
+    int n_bytes;
+    char buf[BUFSIZ];
+    n_bytes = recv(client_socket, buf, BUFSIZ, 0);
+    while(n_bytes > 0) {
+      meltdown.yay_bit = 1;
+      syslog(LOG_INFO,"new ticket available");
+      n_bytes = recv(client_socket, buf, BUFSIZ, 0);
+    }
 
     close(client_socket);
   }
